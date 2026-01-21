@@ -5,6 +5,7 @@ public class WebCamController : MonoBehaviour
 {
     [Header("UI Settings")]
     [SerializeField] private RawImage displayImage;
+    public RawImage DisplayImage => displayImage;
 
     [Header("WebCam Settings")]
     [SerializeField] private int requestedWidth = 1920;
@@ -12,6 +13,7 @@ public class WebCamController : MonoBehaviour
     [SerializeField] private int requestedFPS = 30;
 
     private WebCamTexture webCamTexture;
+    public WebCamTexture WebCamTexture => webCamTexture;
 
     void Start()
     {
