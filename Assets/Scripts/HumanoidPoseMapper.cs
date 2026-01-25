@@ -22,9 +22,22 @@ public class HumanoidPoseMapper : MonoBehaviour
     private Dictionary<int, OneEuroFilter3> landmarkFilters = new Dictionary<int, OneEuroFilter3>();
     private Dictionary<HumanBodyBones, Quaternion> initialRotations = new Dictionary<HumanBodyBones, Quaternion>();
     private Dictionary<HumanBodyBones, Vector3> initialBoneDirections = new Dictionary<HumanBodyBones, Vector3>();
+    private Vector3 initialShoulderRight; // Vector from L Shoulder to R Shoulder
     private Transform hips;
     private Transform root; // Character root
     private Vector3 initialHipsPosition;
+    
+    [Header("Orientation Adjustment")]
+    public Vector3 hipsRotationOffset = new Vector3(0, 90, 0); // User suggested 90 deg offset logic
+
+    [Header("Visibility Control")]
+    [Range(0f, 1f)]
+    public float minLandmarkVisibility = 0.5f;
+    public float autoHideTimeout = 0.5f;
+
+    private float lastDataTime;
+    private bool isVisible = true;
+    private Renderer[] childRenderers;
 
     // Mapping definition: Bone -> (StartLandmark, EndLandmark)
     // MediaPipe Landmark IDs:
@@ -71,6 +84,21 @@ public class HumanoidPoseMapper : MonoBehaviour
         // Left Leg (Unity) <- Right Leg (MP)
         mappings.Add(new BoneMapping(HumanBodyBones.LeftUpperLeg, 24, 26, HumanBodyBones.LeftLowerLeg));
         mappings.Add(new BoneMapping(HumanBodyBones.LeftLowerLeg, 26, 28, HumanBodyBones.LeftFoot));
+
+        // --- New Mappings for Torso & Head ---
+        // Virtual Landmarks: 33 = MidShoulder, 34 = MidHip
+        // Spine: MidShoulder -> MidHip (Controls Uprightness)
+        // Note: Unity Spine is usually lower, Chest is upper. Let's map Spine.
+        mappings.Add(new BoneMapping(HumanBodyBones.Spine, 34, 33, HumanBodyBones.Chest)); 
+        
+        // Head: Nose -> MidShoulder (Controls Head direction relative to body)
+        // Or better: MidShoulder -> Nose
+        mappings.Add(new BoneMapping(HumanBodyBones.Head, 33, 0)); 
+
+        // Hips (Rotation): Left Hip -> Right Hip (Controls Pelvis rotation)
+        // MidHip is position, but rotation comes from the hip-to-hip vector.
+        // We will handle Hips rotation MANUALLY in ApplyPose to use Shoulder/Hip fusion or specific logic.
+        // mappings.Add(new BoneMapping(HumanBodyBones.Hips, 23, 24)); // Removed, doing manual
         
         hips = animator.GetBoneTransform(HumanBodyBones.Hips);
         if (hips) initialHipsPosition = hips.position;
@@ -78,6 +106,10 @@ public class HumanoidPoseMapper : MonoBehaviour
 
         // 2. Capture Initial State (AFTER defining mappings)
         CaptureInitialState();
+        
+        childRenderers = GetComponentsInChildren<Renderer>();
+        lastDataTime = Time.time;
+        SetVisibility(true);
     }
 
     void CaptureInitialState()
@@ -110,6 +142,15 @@ public class HumanoidPoseMapper : MonoBehaviour
                 }
             }
         }
+        
+        // Capture Initial Shoulder Right Vector
+        Transform lArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+        Transform rArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+        if (lArm && rArm) {
+            initialShoulderRight = (rArm.position - lArm.position).normalized;
+        } else {
+             initialShoulderRight = Vector3.right; // Fallback
+        }
     }
 
     void Update()
@@ -135,14 +176,50 @@ public class HumanoidPoseMapper : MonoBehaviour
 
         if (person != null)
         {
+            lastDataTime = Time.time;
+            if (!isVisible) SetVisibility(true);
             ApplyPose(person);
         }
+        else
+        {
+            if (isVisible && Time.time - lastDataTime > autoHideTimeout)
+            {
+                SetVisibility(false);
+            }
+        }
+    }
+
+    void SetVisibility(bool visible)
+    {
+        isVisible = visible;
+        if (childRenderers != null)
+        {
+            foreach (var r in childRenderers)
+            {
+                if (r != null) r.enabled = visible;
+            }
+        }
+    }
+
+    float GetLandmarkVisibility(PersonData person, int index)
+    {
+        // Handle virtual landmarks
+        if (index == 33) // MidShoulder -> Avg(11, 12)
+            return Mathf.Min(GetLandmarkVisibility(person, 11), GetLandmarkVisibility(person, 12));
+        if (index == 34) // MidHip -> Avg(23, 24)
+            return Mathf.Min(GetLandmarkVisibility(person, 23), GetLandmarkVisibility(person, 24));
+            
+        if (index >= 0 && index < person.landmarks_3d.Count)
+            return person.landmarks_3d[index].visibility;
+            
+        return 0f;
     }
 
     void ApplyPose(PersonData person)
     {
         // 1. Smooth Landmarks
-        Vector3[] smoothedLandmarks = new Vector3[33];
+        // Indexes 0-32 are MP. 33=MidShoulder, 34=MidHip
+        Vector3[] smoothedLandmarks = new Vector3[35]; 
         for (int i = 0; i < person.landmarks_3d.Count && i < 33; i++)
         {
             float xVal = person.landmarks_3d[i].x;
@@ -171,6 +248,13 @@ public class HumanoidPoseMapper : MonoBehaviour
             }
         }
 
+        // --- Virtual Landmarks Calculation ---
+        // MidShoulder (33) = (LeftShoulder(11) + RightShoulder(12)) / 2
+        smoothedLandmarks[33] = (smoothedLandmarks[11] + smoothedLandmarks[12]) * 0.5f;
+        
+        // MidHip (34) = (LeftHip(23) + RightHip(24)) / 2
+        smoothedLandmarks[34] = (smoothedLandmarks[23] + smoothedLandmarks[24]) * 0.5f;
+
         // 2. Map Body Position (Root Motion)
         // MP coordinates: X (right?), Y (up?), Z (screen?) -> Need to verify convention from Python
         // Python: x=-lm.x (flip), y=lm.y, z=lm.z.
@@ -197,10 +281,42 @@ public class HumanoidPoseMapper : MonoBehaviour
         
         if (hips != null)
         {
-             // Simple approach: Map MP Hip Center Delta to Unity Hip Position
-             // Or just set it if we trust the floor level (MP Y=0 is sometimes mid-body)
-             // Let's try direct assignment relative to initial offset
-             hips.position = initialHipsPosition + targetHipsPos;
+             // Check visibility for Hips Position (23, 24)
+             float hipsVis = GetLandmarkVisibility(person, 34); // Virtual MidHip uses 23, 24
+             
+             if (hipsVis >= minLandmarkVisibility)
+             {
+                 // Simple approach: Map MP Hip Center Delta to Unity Hip Position
+                 // Or just set it if we trust the floor level (MP Y=0 is sometimes mid-body)
+                 // Let's try direct assignment relative to initial offset
+                 hips.position = initialHipsPosition + targetHipsPos;
+             }
+             
+             
+             // --- BODY ORIENTATION CORRECTION (STABLE) ---
+             // 1. Calculate Shoulder Vector (Left 11 -> Right 12)
+             if (GetLandmarkVisibility(person, 11) >= minLandmarkVisibility && 
+                 GetLandmarkVisibility(person, 12) >= minLandmarkVisibility)
+             {
+                 Vector3 currentShoulderVec = (smoothedLandmarks[12] - smoothedLandmarks[11]).normalized;
+                 
+                 // 2. Define Up Vector (Lock to World Up to prevent flipping)
+                 Vector3 worldUp = Vector3.up;
+    
+                 // 3. Calculate Forward using Cross Product
+                 // Cross(Right, Up) = Forward (Assuming standard Unity coordinates)
+                 Vector3 charForward = Vector3.Cross(currentShoulderVec, worldUp).normalized;
+    
+                 if (charForward.sqrMagnitude > 0.01f)
+                 {
+                     // 4. Create LookRotation
+                     Quaternion targetLookRot = Quaternion.LookRotation(charForward, worldUp);
+                     
+                     // 5. Apply with Offset
+                     // User suggested 90 degrees correction because shoulder vector is horizontal
+                    //  hips.rotation = targetLookRot * Quaternion.Euler(hipsRotationOffset); 
+                 }
+             }
         }
 
         // 3. Map Rotations
@@ -208,6 +324,11 @@ public class HumanoidPoseMapper : MonoBehaviour
         {
             Transform bone = animator.GetBoneTransform(map.bone);
             if (bone == null) continue;
+
+            // Check Visibility
+            float vStart = GetLandmarkVisibility(person, map.startIdx);
+            float vEnd = GetLandmarkVisibility(person, map.endIdx);
+            if (vStart < minLandmarkVisibility || vEnd < minLandmarkVisibility) continue;
 
             Vector3 start = smoothedLandmarks[map.startIdx];
             Vector3 end = smoothedLandmarks[map.endIdx];
