@@ -107,6 +107,13 @@ public class UdpReceiver : MonoBehaviour
                     float cy = reader.ReadSingle();
                     person.center = new float[] { cx, cy };
                     
+                    // Read Face Rect (x, y, w, h)
+                    float fx = reader.ReadSingle();
+                    float fy = reader.ReadSingle();
+                    float fw = reader.ReadSingle();
+                    float fh = reader.ReadSingle();
+                    person.faceRect = new float[] { fx, fy, fw, fh };
+                    
                     int numLandmarks = reader.ReadInt32();
                     person.landmarks_3d = new List<Landmark>(numLandmarks);
 
@@ -129,11 +136,29 @@ public class UdpReceiver : MonoBehaviour
         }
     }
 
+    [Header("Visualization")]
+    public List<GameObject> characters;
+
     void UpdateSkeleton()
     {
-        if (latestPosePacket == null) return;
-        // 範例：處理最新收到的資料
-        // Debug.Log($"Received data for {latestPosePacket.people.Count} people");
+        if (latestPosePacket == null || latestPosePacket.people == null) return;
+
+        int peopleCount = latestPosePacket.people.Count;
+
+        if (characters != null)
+        {
+            for (int i = 0; i < characters.Count; i++)
+            {
+                if (characters[i] != null)
+                {
+                    bool shouldActive = i < peopleCount;
+                    if (characters[i].activeSelf != shouldActive)
+                    {
+                        characters[i].SetActive(shouldActive);
+                    }
+                }
+            }
+        }
     }
 
     void OnApplicationQuit()

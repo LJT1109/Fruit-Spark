@@ -15,6 +15,7 @@ public class PersonData
 {
     public int id;
     public float[] center;
+    public float[] faceRect; // [x, y, w, h] (normalized 0-1)
     public List<Landmark> landmarks_3d;
 }
 

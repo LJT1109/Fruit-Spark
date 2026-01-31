@@ -168,6 +168,12 @@ public class HumanoidPoseMapper : MonoBehaviour
             }
         }
         
+        if (person == null)
+        {
+            // Debug.LogError("Person not found with ID: " + targetPersonId);
+            return;
+        }
+        
         // If not found by ID, maybe take the first one? 
         if (person == null && udpReceiver.latestPosePacket.people.Count > 0)
         {
