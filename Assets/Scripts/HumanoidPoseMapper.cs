@@ -21,6 +21,7 @@ public class HumanoidPoseMapper : MonoBehaviour
     // Internal state
     private Dictionary<int, OneEuroFilter3> landmarkFilters = new Dictionary<int, OneEuroFilter3>();
     private Dictionary<HumanBodyBones, Quaternion> initialRotations = new Dictionary<HumanBodyBones, Quaternion>();
+    private Dictionary<HumanBodyBones, Quaternion> restRotations = new Dictionary<HumanBodyBones, Quaternion>();
     private Dictionary<HumanBodyBones, Vector3> initialBoneDirections = new Dictionary<HumanBodyBones, Vector3>();
     private Vector3 initialShoulderRight; // Vector from L Shoulder to R Shoulder
     private Transform hips;
@@ -34,6 +35,12 @@ public class HumanoidPoseMapper : MonoBehaviour
     [Range(0f, 1f)]
     public float minLandmarkVisibility = 0.5f;
     public float autoHideTimeout = 0.5f;
+
+    [Header("Reset Settings")]
+    public float resetDelay = 0.5f;   // Time in seconds to wait before resetting a bone
+    public float resetSpeed = 2.0f;   // Speed of lerping back to default
+
+    private Dictionary<HumanBodyBones, float> boneLastVisibleTime = new Dictionary<HumanBodyBones, float>();
 
     private float lastDataTime;
     private bool isVisible = true;
@@ -114,7 +121,7 @@ public class HumanoidPoseMapper : MonoBehaviour
 
     void CaptureInitialState()
     {
-        // Capture Rotations
+        // 1. Capture Initial Rotations (T-Pose / Start Pose)
         foreach (HumanBodyBones bone in System.Enum.GetValues(typeof(HumanBodyBones)))
         {
             if (bone == HumanBodyBones.LastBone) continue;
@@ -126,7 +133,7 @@ public class HumanoidPoseMapper : MonoBehaviour
             }
         }
 
-        // Capture Directions for mapped bones
+        // 2. Capture Directions for mapped bones
         foreach (var map in mappings)
         {
             if (map.childBone.HasValue)
@@ -143,13 +150,37 @@ public class HumanoidPoseMapper : MonoBehaviour
             }
         }
         
-        // Capture Initial Shoulder Right Vector
+        // 3. Capture Initial Shoulder Right Vector
         Transform lArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
         Transform rArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
         if (lArm && rArm) {
             initialShoulderRight = (rArm.position - lArm.position).normalized;
         } else {
              initialShoulderRight = Vector3.right; // Fallback
+        }
+
+        // 4. Calculate Rest Rotations (Natural Down)
+        // We initialize restRotations with initialRotations first.
+        foreach (var kvp in initialRotations)
+        {
+             restRotations[kvp.Key] = kvp.Value;
+        }
+        
+        // Modify Arms to point down for Rest Pose
+        Transform lArmT = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+        if (lArmT)
+        {
+             // Down is roughly -80 degrees around Z relative to T-Pose (Left Arm)
+             Quaternion downRotL = Quaternion.Euler(0, 0, -80) * initialRotations[HumanBodyBones.LeftUpperArm]; 
+             restRotations[HumanBodyBones.LeftUpperArm] = downRotL;
+        }
+
+        Transform rArmT = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+        if (rArmT)
+        {
+             // Down is roughly +80 degrees around Z relative to T-Pose (Right Arm)
+             Quaternion downRotR = Quaternion.Euler(0, 0, 80) * initialRotations[HumanBodyBones.RightUpperArm];
+             restRotations[HumanBodyBones.RightUpperArm] = downRotR;
         }
     }
 
@@ -334,7 +365,31 @@ public class HumanoidPoseMapper : MonoBehaviour
             // Check Visibility
             float vStart = GetLandmarkVisibility(person, map.startIdx);
             float vEnd = GetLandmarkVisibility(person, map.endIdx);
-            if (vStart < minLandmarkVisibility || vEnd < minLandmarkVisibility) continue;
+            if (vStart < minLandmarkVisibility || vEnd < minLandmarkVisibility)
+            {
+                // Bone is not visible
+                // Check if we should reset
+                if (boneLastVisibleTime.ContainsKey(map.bone))
+                {
+                    float timeSinceVisible = Time.time - boneLastVisibleTime[map.bone];
+                    if (timeSinceVisible > resetDelay)
+                    {
+                        // Lerp back to REST rotation (not necessarily T-pose)
+                        if (restRotations.ContainsKey(map.bone))
+                        {
+                            bone.rotation = Quaternion.Slerp(bone.rotation, restRotations[map.bone], Time.deltaTime * resetSpeed);
+                        }
+                        else if (initialRotations.ContainsKey(map.bone))
+                        {
+                            bone.rotation = Quaternion.Slerp(bone.rotation, initialRotations[map.bone], Time.deltaTime * resetSpeed);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Bone IS visible, update time
+            boneLastVisibleTime[map.bone] = Time.time;
 
             Vector3 start = smoothedLandmarks[map.startIdx];
             Vector3 end = smoothedLandmarks[map.endIdx];
