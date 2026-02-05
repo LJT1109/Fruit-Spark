@@ -10,6 +10,9 @@ public class UdpReceiver : MonoBehaviour
 {
     [Header("Network Settings")]
     public int port = 5005;
+    
+    [Tooltip("If true, when >0 people are detected, any ID not present in the packet is hidden immediately.")]
+    public bool strictCleanup = true;
 
     [Header("Movement Settings")]
     // Moved to Settings.cs
@@ -24,6 +27,8 @@ public class UdpReceiver : MonoBehaviour
 
     [Header("Stability")]
     public float lostTrackingTimeout = 0.5f; // Time in seconds to keep character active after losing tracking
+    [Tooltip("How many consecutive frames a person must be detected before showing the character.")]
+    public int framesToActive = 3;
 
     private Thread receiveThread;
     private UdpClient client;
@@ -36,6 +41,7 @@ public class UdpReceiver : MonoBehaviour
 
     public PosePacket latestPosePacket;
     private float[] lastSeenTimes;
+    private int[] consecutiveSightings;
 
 
     void Start()
@@ -46,6 +52,7 @@ public class UdpReceiver : MonoBehaviour
         if (characterBindings != null)
         {
             lastSeenTimes = new float[characterBindings.Count];
+            consecutiveSightings = new int[characterBindings.Count];
         }
 
 
@@ -190,6 +197,14 @@ public class UdpReceiver : MonoBehaviour
         if (lastSeenTimes == null || lastSeenTimes.Length != characterBindings.Count)
         {
             lastSeenTimes = new float[characterBindings.Count];
+            consecutiveSightings = new int[characterBindings.Count];
+        }
+
+        // Collect present IDs
+        HashSet<int> presentIds = new HashSet<int>();
+        foreach (var person in latestPosePacket.people)
+        {
+            presentIds.Add(person.id);
         }
 
         // 1. Process received people (Update positions and refresh lastSeenTime)
@@ -201,30 +216,62 @@ public class UdpReceiver : MonoBehaviour
                 var binding = characterBindings[id];
                 if (binding != null && binding.characterRoot != null)
                 {
-                    // Activate if hidden
-                    if (!binding.characterRoot.activeSelf)
+                    // Update timestamp & consecutive count
+                    lastSeenTimes[id] = Time.time;
+                    consecutiveSightings[id]++;
+
+                    // Activate only if threshold met
+                    if (consecutiveSightings[id] >= framesToActive)
                     {
-                        binding.characterRoot.SetActive(true);
+                        if (!binding.characterRoot.activeSelf)
+                        {
+                            binding.characterRoot.SetActive(true);
+                        }
                     }
 
-                    // Update timestamp
-                    lastSeenTimes[id] = Time.time;
-
-                    // Update Transforms & Face
+                    // Update Transforms & Face (Always update even if not yet active, so it pops in correctly)
                     UpdateCharacter(binding, person);
                 }
             }
         }
 
-        // 2. Process timeouts (Hide characters that haven't been seen for a while)
+        // 2. Process timeouts / Strict Cleanup
+        // If strictCleanup is true AND we received > 0 people, we force hide anyone not in the list.
+        // If we received 0 people, we rely on timeout (anti-flicker for complete loss).
+        bool doStrictCleanup = strictCleanup && latestPosePacket.people.Count > 0;
+
         for (int i = 0; i < characterBindings.Count; i++)
         {
             if (characterBindings[i] != null && characterBindings[i].characterRoot != null)
             {
-                // If it's active, check if it should time out
+                // Reset consecutive count if not present
+                if (!presentIds.Contains(i))
+                {
+                    consecutiveSightings[i] = 0;
+                }
+
                 if (characterBindings[i].characterRoot.activeSelf)
                 {
-                    if (Time.time - lastSeenTimes[i] > lostTrackingTimeout)
+                    bool shouldHide = false;
+
+                    if (doStrictCleanup)
+                    {
+                        // If strict cleanup is on, hide if not present in this packet
+                        if (!presentIds.Contains(i))
+                        {
+                            shouldHide = true;
+                        }
+                    }
+                    else
+                    {
+                        // Standard timeout logic
+                        if (Time.time - lastSeenTimes[i] > lostTrackingTimeout)
+                        {
+                            shouldHide = true;
+                        }
+                    }
+
+                    if (shouldHide)
                     {
                         characterBindings[i].characterRoot.SetActive(false);
                     }
