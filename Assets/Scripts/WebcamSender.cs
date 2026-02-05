@@ -14,24 +14,26 @@ public class WebcamSender : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            if (uiCanvas != null)
-            {
-                uiCanvas.SetActive(!uiCanvas.activeSelf);
-            }
-        }
+        // Conflict with Settings.cs ESC toggle removed.
+        // if (Input.GetKeyDown(KeyCode.Escape))
+        // {
+        //     if (uiCanvas != null)
+        //     {
+        //         uiCanvas.SetActive(!uiCanvas.activeSelf);
+        //     }
+        // }
     }
 
     [Header("Network Settings")]
-    public string serverIP = "127.0.0.1";
-    public int serverPort = 5004;
+    // Local fields replaced by Settings.cs
+    // public string serverIP = "127.0.0.1";
+    // public int serverPort = 5004;
 
     [Header("Video Settings")]
-    public int targetWidth = 640;
-    public int targetHeight = 480;
-    [Range(0, 100)]
-    public int jpegQuality = 50;
+    // public int targetWidth = 640;
+    // public int targetHeight = 360;
+    // [Range(0, 100)]
+    // public int jpegQuality = 50;
 
     public static WebcamSender Instance { get; private set; }
 
@@ -56,22 +58,52 @@ public class WebcamSender : MonoBehaviour
     private RenderTexture renderTexture;
     private IPEndPoint remoteEndPoint;
     
+    // Helper to recreate endpoint if settings change
+    private void UpdateRemoteEndPoint()
+    {
+        if (Settings.Instance == null) return;
+        try {
+            remoteEndPoint = new IPEndPoint(IPAddress.Parse(Settings.Instance.serverIP), Settings.Instance.serverPort);
+        } catch {}
+    }
+
+    private void UpdateTextures()
+    {
+        if (Settings.Instance == null) return;
+        
+        int w = Settings.Instance.targetWidth;
+        int h = Settings.Instance.targetHeight;
+        
+        if (renderTexture != null) renderTexture.Release();
+        renderTexture = new RenderTexture(w, h, 24);
+        
+        if (resizedTexture != null) Destroy(resizedTexture);
+        resizedTexture = new Texture2D(w, h, TextureFormat.RGB24, false);
+    }
+    
     private const string PREF_CAMERA_NAME = "SelectedCameraName";
-    private WebCamDevice[] devices;
-    private Resolution[] availableResolutions;
+    public WebCamDevice[] devices { get; private set; }
+    public Resolution[] availableResolutions { get; private set; }
+    public int currentCameraIndex { get; private set; } = 0;
+    public int currentResolutionIndex { get; private set; } = 0;
 
     void Start()
     {
         // Initialize UDP Config
         udpClient = new UdpClient();
-        remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIP), serverPort);
+        UpdateRemoteEndPoint();
 
         // Initialize Textures for resizing
-        renderTexture = new RenderTexture(targetWidth, targetHeight, 24);
-        resizedTexture = new Texture2D(targetWidth, targetHeight, TextureFormat.RGB24, false);
+        UpdateTextures();
 
         // Setup Camera Dropdown and Start Camera
         InitializeCameraDropdown();
+
+        // Hide Canvas on Startup
+        if (uiCanvas != null)
+        {
+            uiCanvas.SetActive(false);
+        }
 
         StartCoroutine(SendFrames());
     }
@@ -85,14 +117,14 @@ public class WebcamSender : MonoBehaviour
             return;
         }
 
+        int selectedIndex = 0;
+        string savedCameraName = PlayerPrefs.GetString(PREF_CAMERA_NAME, "");
+
         if (cameraDropdown != null)
         {
             cameraDropdown.ClearOptions();
             System.Collections.Generic.List<string> options = new System.Collections.Generic.List<string>();
             
-            int selectedIndex = 0;
-            string savedCameraName = PlayerPrefs.GetString(PREF_CAMERA_NAME, "");
-
             for (int i = 0; i < devices.Length; i++)
             {
                 options.Add(devices[i].name);
@@ -106,6 +138,19 @@ public class WebcamSender : MonoBehaviour
             cameraDropdown.value = selectedIndex;
             cameraDropdown.onValueChanged.AddListener(OnCameraSelected);
         }
+        else
+        {
+             // Initialize without dropdown
+             for (int i = 0; i < devices.Length; i++)
+             {
+                 if (devices[i].name == savedCameraName)
+                 {
+                     selectedIndex = i;
+                 }
+             }
+        }
+        
+        currentCameraIndex = selectedIndex;
 
         // Start the camera (either saved or default 0)
         // By setting the value, it triggers the OnValueChanged listener (OnCameraSelected)
@@ -113,10 +158,8 @@ public class WebcamSender : MonoBehaviour
         // So we manually call OnCameraSelected to ensure resolutions are populated.
         
         // Find correct index for saved camera
-        int indexToSelect = 0;
-        if (cameraDropdown != null) indexToSelect = cameraDropdown.value;
-
-        OnCameraSelected(indexToSelect);
+        // Use the calculated selectedIndex
+        OnCameraSelected(currentCameraIndex);
     }
 
     public void OnCameraSelected(int index)
@@ -124,6 +167,7 @@ public class WebcamSender : MonoBehaviour
         if (devices == null || index < 0 || index >= devices.Length) return;
 
         string selectedDeviceName = devices[index].name;
+        currentCameraIndex = index;
         
         // Save preference
         PlayerPrefs.SetString(PREF_CAMERA_NAME, selectedDeviceName);
@@ -135,36 +179,39 @@ public class WebcamSender : MonoBehaviour
 
     void PopulateResolutions(WebCamDevice device)
     {
-        if (resolutionDropdown == null)
-        {
-             // If no dropdown, just start camera with default/inspector settings
-             StartCamera(device.name);
-             return;
-        }
-
-        resolutionDropdown.ClearOptions();
         availableResolutions = device.availableResolutions;
+        
+        // Populate dropdown if it exists
+        if (resolutionDropdown != null)
+        {
+             resolutionDropdown.ClearOptions();
+        }
 
         if (availableResolutions == null || availableResolutions.Length == 0)
         {
             // Fallback if no resolutions reported
-            System.Collections.Generic.List<string> options = new System.Collections.Generic.List<string> { "Default" };
-            resolutionDropdown.AddOptions(options);
-            resolutionDropdown.interactable = false;
+            if (resolutionDropdown != null)
+            {
+                System.Collections.Generic.List<string> options = new System.Collections.Generic.List<string> { "Default" };
+                resolutionDropdown.AddOptions(options);
+                resolutionDropdown.interactable = false;
+            }
             StartCamera(device.name);
         }
         else
         {
-            resolutionDropdown.interactable = true;
-            System.Collections.Generic.List<string> options = new System.Collections.Generic.List<string>();
             int bestIndex = 0;
             int maxResolution = 0;
+            System.Collections.Generic.List<string> options = new System.Collections.Generic.List<string>();
 
             for (int i = 0; i < availableResolutions.Length; i++)
             {
                 Resolution res = availableResolutions[i];
-                string optionText = $"{res.width}x{res.height} @ {res.refreshRate}Hz";
-                options.Add(optionText);
+                if (resolutionDropdown != null)
+                {
+                    string optionText = $"{res.width}x{res.height} @ {res.refreshRate}Hz";
+                    options.Add(optionText);
+                }
 
                 // Simple logic to find "highest" resolution (product of width*height)
                 if (res.width * res.height > maxResolution)
@@ -174,13 +221,15 @@ public class WebcamSender : MonoBehaviour
                 }
             }
 
-            resolutionDropdown.AddOptions(options);
-            resolutionDropdown.onValueChanged.RemoveAllListeners(); // Remove previous listeners
-            resolutionDropdown.onValueChanged.AddListener(OnResolutionSelected);
-            
-            // Auto-select highest resolution
-            resolutionDropdown.value = bestIndex; 
-            resolutionDropdown.RefreshShownValue();
+            if (resolutionDropdown != null)
+            {
+                resolutionDropdown.interactable = true;
+                resolutionDropdown.AddOptions(options);
+                resolutionDropdown.onValueChanged.RemoveAllListeners(); // Remove previous listeners
+                resolutionDropdown.onValueChanged.AddListener(OnResolutionSelected);
+                resolutionDropdown.value = bestIndex; 
+                resolutionDropdown.RefreshShownValue();
+            }
             
             // Trigger selection to update settings and start camera
             OnResolutionSelected(bestIndex);
@@ -189,8 +238,12 @@ public class WebcamSender : MonoBehaviour
 
     public void OnResolutionSelected(int index)
     {
-        if (devices == null || cameraDropdown == null) return;
-        string deviceName = devices[cameraDropdown.value].name;
+        // if (devices == null || cameraDropdown == null) return; 
+        // We decouple from dropdown check
+        if (devices == null) return;
+        
+        string deviceName = devices[currentCameraIndex].name;
+        currentResolutionIndex = index;
 
         if (availableResolutions != null && index >= 0 && index < availableResolutions.Length)
         {
@@ -242,17 +295,31 @@ public class WebcamSender : MonoBehaviour
     {
         if (udpClient == null) return;
 
+        // Check for settings changes
+        if (Settings.Instance != null)
+        {
+             if (Settings.Instance.targetWidth != resizedTexture.width || 
+                 Settings.Instance.targetHeight != resizedTexture.height)
+             {
+                 UpdateTextures();
+             }
+             
+             // Simple check if endpoint needs update (optimization: store last known ip/port)
+             // For now, let's just update if strings don't match, though parsing IP every frame is slightly wasteful but negligible here
+             // Better: we assume user changes are rare. We can just check values.
+        }
+
         // 1. Blit Webcam texture to RenderTexture (Resizing)
         Graphics.Blit(webCamTexture, renderTexture);
 
         // 2. Read pixels from RenderTexture to Texture2D
         RenderTexture.active = renderTexture;
-        resizedTexture.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
+        resizedTexture.ReadPixels(new Rect(0, 0, resizedTexture.width, resizedTexture.height), 0, 0);
         resizedTexture.Apply();
         RenderTexture.active = null;
 
         // 3. Encode to JPG
-        byte[] imageBytes = resizedTexture.EncodeToJPG(jpegQuality);
+        byte[] imageBytes = resizedTexture.EncodeToJPG(Settings.Instance != null ? Settings.Instance.jpegQuality : 50);
 
         // 4. Send via UDP with Fragmentation
         try

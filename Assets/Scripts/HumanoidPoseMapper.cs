@@ -9,8 +9,8 @@ public class HumanoidPoseMapper : MonoBehaviour
 
     [Header("Settings")]
     public int targetPersonId = 0; // Which person to track (0-based index from MP)
-    [Range(0.1f, 10f)]
-    public float movementScale = 1.0f;
+    // [Range(0.1f, 10f)]
+    // public float movementScale = 1.0f; // Moved to Settings.cs
     public bool enableSmoothing = true;
     public bool flipHorizontal = false;
     
@@ -26,7 +26,7 @@ public class HumanoidPoseMapper : MonoBehaviour
     private Vector3 initialShoulderRight; // Vector from L Shoulder to R Shoulder
     private Transform hips;
     private Transform root; // Character root
-    private Vector3 initialHipsPosition;
+    private Vector3 initialHipsLocalPosition;
     
     [Header("Orientation Adjustment")]
     public Vector3 hipsRotationOffset = new Vector3(0, 90, 0); // User suggested 90 deg offset logic
@@ -108,7 +108,7 @@ public class HumanoidPoseMapper : MonoBehaviour
         // mappings.Add(new BoneMapping(HumanBodyBones.Hips, 23, 24)); // Removed, doing manual
         
         hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-        if (hips) initialHipsPosition = hips.position;
+        if (hips) initialHipsLocalPosition = hips.localPosition;
         root = transform;
 
         // 2. Capture Initial State (AFTER defining mappings)
@@ -184,7 +184,7 @@ public class HumanoidPoseMapper : MonoBehaviour
         }
     }
 
-    void Update()
+    void LateUpdate()
     {
         if (udpReceiver == null || udpReceiver.latestPosePacket == null) return;
 
@@ -308,7 +308,7 @@ public class HumanoidPoseMapper : MonoBehaviour
         // Note: Direct position mapping might be huge if MP scale is different.
         // We use movementScale.
         
-        Vector3 targetHipsPos = hipCenterMP * movementScale;
+        Vector3 targetHipsPos = hipCenterMP * (Settings.Instance != null ? Settings.Instance.movementScale : 1.0f);
         
         // Adjust for Unity World Space (Optional: might need to swap axes depending on MP output)
         // If Python sends (x, y, z) matching Unity Left-Hand, we just use it.
@@ -326,7 +326,7 @@ public class HumanoidPoseMapper : MonoBehaviour
                  // Simple approach: Map MP Hip Center Delta to Unity Hip Position
                  // Or just set it if we trust the floor level (MP Y=0 is sometimes mid-body)
                  // Let's try direct assignment relative to initial offset
-                 hips.position = initialHipsPosition + targetHipsPos;
+                 hips.localPosition = initialHipsLocalPosition + targetHipsPos;
              }
              
              

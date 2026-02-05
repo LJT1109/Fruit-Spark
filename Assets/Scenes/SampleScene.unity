@@ -261,7 +261,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d8bf2be6bb7324baca5f2c0d2aa378db, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: -0.01999998
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d8bf2be6bb7324baca5f2c0d2aa378db, type: 3}
       propertyPath: m_LocalPosition.z
@@ -551,9 +551,6 @@ PrefabInstance:
       addedObject: {fileID: 110305129}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d8bf2be6bb7324baca5f2c0d2aa378db, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 110305132}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d8bf2be6bb7324baca5f2c0d2aa378db, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 110305131}
   m_SourcePrefab: {fileID: 100100000, guid: d8bf2be6bb7324baca5f2c0d2aa378db, type: 3}
 --- !u!4 &110305127 stripped
@@ -581,7 +578,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 4
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -608,39 +604,12 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 1.94
   m_Direction: 1
   m_Center: {x: 0, y: 0.94, z: 0}
---- !u!54 &110305132
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 110305128}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
 --- !u!1 &156744717
 GameObject:
   m_ObjectHideFlags: 0
@@ -786,7 +755,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 6c3465876054a4135a8b6020cbde6a5b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: -0.01999998
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 6c3465876054a4135a8b6020cbde6a5b, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1073,9 +1042,6 @@ PrefabInstance:
       addedObject: {fileID: 179620784}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c3465876054a4135a8b6020cbde6a5b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 179620787}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6c3465876054a4135a8b6020cbde6a5b, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 179620786}
   m_SourcePrefab: {fileID: 100100000, guid: 6c3465876054a4135a8b6020cbde6a5b, type: 3}
 --- !u!4 &179620782 stripped
@@ -1103,7 +1069,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 1
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -1130,39 +1095,12 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 1.94
   m_Direction: 1
   m_Center: {x: 0, y: 0.94, z: 0}
---- !u!54 &179620787
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 179620783}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
 --- !u!4 &181165932 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 09f6aed815f0848d8a2ef74c79bc30e7, type: 3}
@@ -1268,7 +1206,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 0
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 1
   minCutoff: 1
@@ -1372,7 +1309,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 1
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -1632,7 +1568,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e3d50b9dd293a44caa72eda42aa660b9, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: -0.02
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e3d50b9dd293a44caa72eda42aa660b9, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1931,9 +1867,6 @@ PrefabInstance:
       addedObject: {fileID: 339905973}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e3d50b9dd293a44caa72eda42aa660b9, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 339905976}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e3d50b9dd293a44caa72eda42aa660b9, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 339905975}
   m_SourcePrefab: {fileID: 100100000, guid: e3d50b9dd293a44caa72eda42aa660b9, type: 3}
 --- !u!4 &339905971 stripped
@@ -1961,7 +1894,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 0
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -1988,39 +1920,12 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 1.94
   m_Direction: 1
   m_Center: {x: 0, y: 0.94, z: 0}
---- !u!54 &339905976
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339905972}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2280,7 +2185,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5c0fb46907e8c40128d8dd645b85e47a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: -0.01999998
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5c0fb46907e8c40128d8dd645b85e47a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2543,9 +2448,6 @@ PrefabInstance:
       addedObject: {fileID: 517417880}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5c0fb46907e8c40128d8dd645b85e47a, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 517417883}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5c0fb46907e8c40128d8dd645b85e47a, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 517417882}
   m_SourcePrefab: {fileID: 100100000, guid: 5c0fb46907e8c40128d8dd645b85e47a, type: 3}
 --- !u!4 &517417878 stripped
@@ -2573,7 +2475,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 2
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -2600,39 +2501,12 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 1.94
   m_Direction: 1
   m_Center: {x: 0, y: 0.94, z: 0}
---- !u!54 &517417883
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 517417879}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
 --- !u!1 &540731035 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -8167901815088035181, guid: 49e3994f812ff4204ab5d3ad0efa2cbe, type: 3}
@@ -3375,6 +3249,62 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 540731039}
   m_SourcePrefab: {fileID: 100100000, guid: 49e3994f812ff4204ab5d3ad0efa2cbe, type: 3}
+--- !u!1 &882937352
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 882937354}
+  - component: {fileID: 882937353}
+  m_Layer: 0
+  m_Name: Settings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &882937353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 882937352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35f6f417bac834495b79361c49530132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Settings
+  movementScale: 1
+  xMultiplier: 10
+  xOffset: 0
+  flipX: 1
+  moveSpeed: 5
+  faceScale: 1
+  serverIP: 127.0.0.1
+  serverPort: 5004
+  targetWidth: 640
+  targetHeight: 360
+  jpegQuality: 50
+  showUI: 0
+--- !u!4 &882937354
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 882937352}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.64152, y: 1.83089, z: 6.23605}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &886726880
 GameObject:
   m_ObjectHideFlags: 0
@@ -3913,11 +3843,6 @@ MonoBehaviour:
   cameraDropdown: {fileID: 986189145}
   resolutionDropdown: {fileID: 1283387141}
   uiCanvas: {fileID: 1373000652}
-  serverIP: 127.0.0.1
-  serverPort: 5004
-  targetWidth: 640
-  targetHeight: 480
-  jpegQuality: 50
   captureWidth: 1920
   captureHeight: 1080
   captureFPS: 30
@@ -4216,7 +4141,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 2
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -5498,7 +5422,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 12f3e2f79213c4284bf9934c4047b7e7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: -0.01999998
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 12f3e2f79213c4284bf9934c4047b7e7, type: 3}
       propertyPath: m_LocalPosition.z
@@ -5770,9 +5694,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 12f3e2f79213c4284bf9934c4047b7e7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1621177059}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 12f3e2f79213c4284bf9934c4047b7e7, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1621177058}
   m_SourcePrefab: {fileID: 100100000, guid: 12f3e2f79213c4284bf9934c4047b7e7, type: 3}
 --- !u!4 &1621177054 stripped
 Transform:
@@ -5799,7 +5720,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 3
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -5809,33 +5729,6 @@ MonoBehaviour:
   autoHideTimeout: 0.5
   resetDelay: 0.5
   resetSpeed: 2
---- !u!54 &1621177058
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1621177055}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
 --- !u!136 &1621177059
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -5853,7 +5746,7 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 2.77
@@ -5963,7 +5856,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 0
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -6263,7 +6155,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 3
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -6362,7 +6253,6 @@ MonoBehaviour:
   udpReceiver: {fileID: 2115982716}
   animator: {fileID: 0}
   targetPersonId: 4
-  movementScale: 1
   enableSmoothing: 1
   flipHorizontal: 0
   minCutoff: 1
@@ -7194,11 +7084,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UdpReceiver
   port: 5005
-  xMultiplier: 10
-  xOffset: 0
-  flipX: 0
-  moveSpeed: 5
-  faceScale: 2
+  lostTrackingTimeout: 0.5
   latestPosePacket:
     people: []
   characterBindings:
@@ -7246,3 +7132,4 @@ SceneRoots:
   - {fileID: 1044399562}
   - {fileID: 1373000656}
   - {fileID: 1468792278}
+  - {fileID: 882937354}

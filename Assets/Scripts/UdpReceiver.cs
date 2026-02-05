@@ -12,14 +12,18 @@ public class UdpReceiver : MonoBehaviour
     public int port = 5005;
 
     [Header("Movement Settings")]
-    public float xMultiplier = 10.0f; // Scale usage of normalized center (0-1) to Unity world units
-    public float xOffset = 0.0f;      // Offset to center the movement
-    public bool flipX = true;         // Flip horizontal direction
-    public float moveSpeed = 5.0f;    // Smoothing speed
-
+    // Moved to Settings.cs
+    // public float xMultiplier = 10.0f; 
+    // public float xOffset = 0.0f;      
+    // public bool flipX = true;         
+    // public float moveSpeed = 5.0f;    
+    
     [Header("Face Settings")]
     [Range(0.1f, 3.0f)]
-    public float faceScale = 1.0f; // Scale factor for the face rect (1.0 = original, <1 = zoom in, >1 = zoom out)
+    // public float faceScale = 1.0f; // Moved to Settings.cs
+
+    [Header("Stability")]
+    public float lostTrackingTimeout = 0.5f; // Time in seconds to keep character active after losing tracking
 
     private Thread receiveThread;
     private UdpClient client;
@@ -31,11 +35,19 @@ public class UdpReceiver : MonoBehaviour
     private bool newDataAvailable = false;
 
     public PosePacket latestPosePacket;
+    private float[] lastSeenTimes;
+
 
     void Start()
     {
         latestPosePacket = new PosePacket();
         latestPosePacket.people = new List<PersonData>();
+        
+        if (characterBindings != null)
+        {
+            lastSeenTimes = new float[characterBindings.Count];
+        }
+
 
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
@@ -167,137 +179,163 @@ public class UdpReceiver : MonoBehaviour
     void UpdateSkeleton()
     {
         if (latestPosePacket == null || latestPosePacket.people == null) return;
+        if (characterBindings == null) return;
 
-        int peopleCount = latestPosePacket.people.Count;
-
-        if (characterBindings != null)
+        // Ensure array size matches if bindings changed via Inspector at runtime (unlikely but safe)
+        if (lastSeenTimes == null || lastSeenTimes.Length != characterBindings.Count)
         {
-            for (int i = 0; i < characterBindings.Count; i++)
+            lastSeenTimes = new float[characterBindings.Count];
+        }
+
+        // 1. Process received people (Update positions and refresh lastSeenTime)
+        foreach (var person in latestPosePacket.people)
+        {
+            int id = person.id;
+            if (id >= 0 && id < characterBindings.Count)
             {
-                var binding = characterBindings[i];
+                var binding = characterBindings[id];
                 if (binding != null && binding.characterRoot != null)
                 {
-                    bool shouldActive = i < peopleCount;
-                    if (binding.characterRoot.activeSelf != shouldActive)
+                    // Activate if hidden
+                    if (!binding.characterRoot.activeSelf)
                     {
-                        binding.characterRoot.SetActive(shouldActive);
+                        binding.characterRoot.SetActive(true);
                     }
 
-                    if (shouldActive)
+                    // Update timestamp
+                    lastSeenTimes[id] = Time.time;
+
+                    // Update Transforms & Face
+                    UpdateCharacter(binding, person);
+                }
+            }
+        }
+
+        // 2. Process timeouts (Hide characters that haven't been seen for a while)
+        for (int i = 0; i < characterBindings.Count; i++)
+        {
+            if (characterBindings[i] != null && characterBindings[i].characterRoot != null)
+            {
+                // If it's active, check if it should time out
+                if (characterBindings[i].characterRoot.activeSelf)
+                {
+                    if (Time.time - lastSeenTimes[i] > lostTrackingTimeout)
                     {
-                        PersonData person = latestPosePacket.people[i];
-                        
-                        // 1. Update Position based on Center
-                        // 1. Update Position based on Priority: Shoulders > Face > Center
-                        // Default to Generic Center
-                        float targetNormalizedX = 0.5f;
-                        bool hasValidX = false;
-
-                        if (person.center != null && person.center.Length >= 2)
-                        {
-                            targetNormalizedX = person.center[0];
-                            hasValidX = true;
-                        }
-
-                        // Try Face Center
-                        if (person.faceRect != null && person.faceRect.Length >= 4 && person.faceRect[2] > 0)
-                        {
-                            // faceRect = [x, y, w, h]
-                            // Face Center X = x + w/2
-                            float faceCenterX = person.faceRect[0] + person.faceRect[2] * 0.5f;
-                            targetNormalizedX = faceCenterX;
-                            hasValidX = true;
-                        }
-
-                        // Try Shoulder Center (Highest Priority as per request)
-                        // Using a visibility threshold, e.g., 0.5
-                        if (person.shoulderCenter != null && person.shoulderCenter.Length >= 2 && person.shoulderVisibility > 0.5f)
-                        {
-                            targetNormalizedX = person.shoulderCenter[0];
-                            hasValidX = true;
-                        }
-
-                        if (hasValidX)
-                        {
-                            float centered = targetNormalizedX - 0.5f;
-                            if (flipX) centered = -centered;
-                            float targetX = (centered * xMultiplier) + xOffset;
-
-                            Vector3 currentPos = binding.characterRoot.transform.position;
-                            Vector3 targetPos = new Vector3(targetX, currentPos.y, currentPos.z);
-                            binding.characterRoot.transform.position = Vector3.Lerp(currentPos, targetPos, Time.deltaTime * moveSpeed);
-                        }
-
-                        // 2. Update Face Texture
-                        if (binding.faceRenderer != null && person.faceRect != null && person.faceRect.Length >= 4)
-                        {
-                            WebCamTexture webcamTex = WebcamSender.Instance ? WebcamSender.Instance.GetWebCamTexture() : null;
-                            if (webcamTex != null)
-                            {
-                                Material faceMat = binding.faceRenderer.material; // Automatically instances
-                                if (faceMat.mainTexture != webcamTex)
-                                {
-                                    faceMat.mainTexture = webcamTex;
-                                }
-
-                                float fx = person.faceRect[0];
-                                float fy = person.faceRect[1];
-                                float fw = person.faceRect[2];
-                                float fh = person.faceRect[3];
-
-                                if (fw > 0 && fh > 0)
-                                {
-                                    // Unity UV (0,0) is bottom-left. CV (0,0) is top-left.
-                                    
-                                    // Apply Scale (Zoom)
-                                    // Current Center
-                                    float fcx = fx + fw * 0.5f;
-                                    float fcy = fy + fh * 0.5f;
-
-                                    // New Width/Height based on scale
-                                    // If we want to "Zoom In" to the face on the mesh, we actually need to taking a SMALLER chunk of the webcam image.
-                                    // So Scale < 1.0 means crop smaller area (Zoom in), Scale > 1.0 means crop larger area (Zoom out).
-                                    // Wait, usually users think: "Make the face bigger on screen". 
-                                    // But here we are defining UVs. 
-                                    // If we want the face to appear bigger, we probably can't change the mesh size here easily without scaling the object.
-                                    // The request says "adjust face rect".
-                                    // Let's assume:
-                                    // faceScale 1.2 means -> Capture 20% MORE area around the face (Zoom Out / Show more context)
-                                    // faceScale 0.8 means -> Capture 20% LESS area (Zoom In / Close up)
-                                    
-                                    float newW = fw * faceScale;
-                                    float newH = fh * faceScale;
-                                    
-                                    // Recalculate Top-Left (fx, fy) based on new size and center
-                                    float newFx = fcx - newW * 0.5f;
-                                    float newFy = fcy - newH * 0.5f;
-
-                                    // Clamp to 0..1 to avoid repeating texture (optional, but safe)
-                                    // newFx = Mathf.Clamp01(newFx);
-                                    // newFy = Mathf.Clamp01(newFy);
-                                    // newW = Mathf.Clamp(newW, 0, 1 - newFx);
-                                    // newH = Mathf.Clamp(newH, 0, 1 - newFy);
-
-                                    // Tiling = (w, h)
-                                    // Offset:
-                                    // X = fx
-                                    // Y = 1.0 - (fy + fh)  (Since fy is top, fy+fh is bottom edge in CV coords)
-                                    
-                                    faceMat.mainTextureScale = new Vector2(newW, newH);
-                                    faceMat.mainTextureOffset = new Vector2(newFx, 1.0f - (newFy + newH));
-                                }
-                            }
-                        }
+                        characterBindings[i].characterRoot.SetActive(false);
                     }
                 }
             }
         }
     }
 
+    void UpdateCharacter(CharacterBinding binding, PersonData person)
+    {
+         // 1. Update Position based on Center
+        // 1. Update Position based on Priority: Shoulders > Face > Center
+        // Default to Generic Center
+        float targetNormalizedX = 0.5f;
+        bool hasValidX = false;
+
+        if (person.center != null && person.center.Length >= 2)
+        {
+            targetNormalizedX = person.center[0];
+            hasValidX = true;
+        }
+
+        // Try Face Center
+        if (person.faceRect != null && person.faceRect.Length >= 4 && person.faceRect[2] > 0)
+        {
+            // faceRect = [x, y, w, h]
+            // Face Center X = x + w/2
+            float faceCenterX = person.faceRect[0] + person.faceRect[2] * 0.5f;
+            targetNormalizedX = faceCenterX;
+            hasValidX = true;
+        }
+
+        // Try Shoulder Center (Highest Priority as per request)
+        // Using a visibility threshold, e.g., 0.5
+        if (person.shoulderCenter != null && person.shoulderCenter.Length >= 2 && person.shoulderVisibility > 0.5f)
+        {
+            targetNormalizedX = person.shoulderCenter[0];
+            hasValidX = true;
+        }
+
+        if (hasValidX)
+        {
+            float centered = targetNormalizedX - 0.5f;
+            if (Settings.Instance != null ? Settings.Instance.flipX : true) centered = -centered;
+            float targetX = (centered * (Settings.Instance != null ? Settings.Instance.xMultiplier : 10f)) + (Settings.Instance != null ? Settings.Instance.xOffset : 0f);
+
+            Vector3 currentPos = binding.characterRoot.transform.position;
+            Vector3 targetPos = new Vector3(targetX, currentPos.y, currentPos.z);
+            binding.characterRoot.transform.position = Vector3.Lerp(currentPos, targetPos, Time.deltaTime * (Settings.Instance != null ? Settings.Instance.moveSpeed : 5f));
+        }
+
+        // 2. Update Face Texture
+        if (binding.faceRenderer != null && person.faceRect != null && person.faceRect.Length >= 4)
+        {
+            WebCamTexture webcamTex = WebcamSender.Instance ? WebcamSender.Instance.GetWebCamTexture() : null;
+            if (webcamTex != null)
+            {
+                Material faceMat = binding.faceRenderer.material; // Automatically instances
+                if (faceMat.mainTexture != webcamTex)
+                {
+                    faceMat.mainTexture = webcamTex;
+                }
+
+                float fx = person.faceRect[0];
+                float fy = person.faceRect[1];
+                float fw = person.faceRect[2];
+                float fh = person.faceRect[3];
+
+                if (fw > 0 && fh > 0)
+                {
+                    // Unity UV (0,0) is bottom-left. CV (0,0) is top-left.
+                    
+                    // Apply Scale (Zoom)
+                    // Current Center
+                    float fcx = fx + fw * 0.5f;
+                    float fcy = fy + fh * 0.5f;
+
+                    float newW = fw * (Settings.Instance != null ? Settings.Instance.faceScale : 1f);
+                    float newH = fh * (Settings.Instance != null ? Settings.Instance.faceScale : 1f);
+                    
+                    // Recalculate Top-Left (fx, fy) based on new size and center
+                    float newFx = fcx - newW * 0.5f;
+                    float newFy = fcy - newH * 0.5f;
+
+                    faceMat.mainTextureScale = new Vector2(newW, newH);
+                    faceMat.mainTextureOffset = new Vector2(newFx, 1.0f - (newFy + newH));
+                }
+            }
+        }
+    }
+
+    void OnDestroy()
+    {
+        Cleanup();
+    }
+
     void OnApplicationQuit()
     {
+        Cleanup();
+    }
+
+    private void Cleanup()
+    {
         isRunning = false;
-        if (client != null) client.Close();
-        if (receiveThread != null) receiveThread.Abort();
+        
+        if (client != null)
+        {
+            client.Close();
+            client.Dispose();
+            client = null;
+        }
+
+        if (receiveThread != null && receiveThread.IsAlive)
+        {
+            receiveThread.Abort();
+            receiveThread = null;
+        }
     }
 }
