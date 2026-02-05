@@ -129,6 +129,11 @@ public class UdpReceiver : MonoBehaviour
                     float cy = reader.ReadSingle();
                     person.center = new float[] { cx, cy };
                     
+                    // Read Size (w, h)
+                    float bboxW = reader.ReadSingle();
+                    float bboxH = reader.ReadSingle();
+                    person.size = new float[] { bboxW, bboxH };
+                    
                     // Read Face Rect (x, y, w, h)
                     float fx = reader.ReadSingle();
                     float fy = reader.ReadSingle();
